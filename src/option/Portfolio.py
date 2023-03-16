@@ -4,8 +4,8 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-# # from .AmericanCall import AmericanCall
-# # from .AmericanPut import AmericanPut
+from .AmericanCall import AmericanCall
+from .AmericanPut import AmericanPut
 from .VanillaCall import VanillaCall
 from .VanillaPut import VanillaPut
 from src.data.Container import _container
@@ -29,7 +29,7 @@ class OptionPortfolio():
     def __init__(self):
         self.decompose_df = {}
         self.greek_df = {}
-        self.basic_paras_df = {}
+        self.price_df = {}
         self.option_list = []
         self.fixbasiclist = ['sigma', 'left_days', 'left_times', 'sigma_T', 'stock_price', 'sigma_2', 'Delta_S',
                              'Delta_r']
@@ -47,7 +47,7 @@ class OptionPortfolio():
         self.option_position = para_dict.get('option_position', 1)
         self.set_all_trade_dates()
 
-        if self.option_type in ['VanillaCall', 'VanillaPut']:
+        if self.option_type in ['VanillaCall', 'VanillaPut', 'AmericanCall', 'AmericanPut']:
             option = eval(self.option_type)(**para_dict)
             option.calculate_option_greeks()
             self.option_list.append({'option_object': option, 'option_position': self.option_position})
@@ -70,11 +70,12 @@ class OptionPortfolio():
 
     def calculate_option_greeks(self):
         for i, element in enumerate(self.option_list):
-            self.basic_paras_df[i] = element.get('option_object').get_basic_para_df()
-            self.greek_df[i] = element.get('option_object').get_greek_df() * element.get('option_position')
+            self.greek_df[i] = element.get('option_object').greek_df * element.get('option_position')
+            self.price_df[i] = element.get('option_object').price_df
 
 
     def pnl_decompose(self):
+        # TODO: American Greeks are not all finished
         self.calculate_option_greeks()
         for i, element in enumerate(self.option_list):
             self.decompose_df[i] = element.get('option_object').get_pnl_decompose_df() * element.get('option_position')

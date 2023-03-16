@@ -10,6 +10,7 @@ from src.backtest.backtest import Backtest
 import pandas as pd
 import numpy as np
 import warnings
+from src.utils.date_utils import trading_days
 
 pd.set_option('display.max_columns', 100)
 pd.set_option('expand_frame_repr', False)
@@ -17,8 +18,8 @@ warnings.filterwarnings('ignore')
 
 start_date = '2020-01-01'
 end_date = '2021-01-01'
-data = Market.load_data_from_wind('000905.SH', ['close'], start_date, end_date)
-trading_days = data.index.tolist()
+# Market.load_data_from_wind('000905.SH', ['CLOSE'], '2010-01-01', None)
+trading_days = trading_days(start_date, end_date)
 
 '''
 Data Generation
@@ -63,40 +64,21 @@ Hedge and Backtest
 # plt.show()
 # print([df['option_value'][0] for df in df_backtest])
 #
+op = OptionPortfolio()
+for type in ['VanillaCall', 'VanillaPut', 'AmericanCall', 'AmericanPut']:
+    paras_dt2 = {'option_type': type, 'underlying_asset': 'stock',
+                 "underlying_code": "sim_0", "strike_date": "2020-01-16",
+                 'maturity_date': '2020-12-25', "option_position": -100,
+                 'K': 12, 'look_back_num': 10, 'r': 0.02}
+    # call2 = VanillaCall(**paras_dt2)
+    # call2.calculate_option_greeks()
+    # print(pd.concat([call2.price_df,call2.greek_df['delta']],axis=1))
+    op.add_option_list(paras_dt2)
 
 
-paras_dt2 = {'option_type': 'VanillaCall', 'underlying_asset': 'stock',
-             "underlying_code": "sim_0", "strike_date": "2020-01-16",
-             'maturity_date': '2020-12-25', "option_position": -100,
-             'K': 12, 'look_back_num': 10, 'r': 0.02}
-call2 = VanillaCall(**paras_dt2)
-call2.calculate_option_greeks()
-print(pd.concat([call2.basic_paras_df,call2.greek_df['delta']],axis=1))
-
-
-paras_dt2 = {'option_type': 'AmericanCall', 'underlying_asset': 'stock',
-             "underlying_code": "sim_0", "strike_date": "2020-01-16",
-             'maturity_date': '2020-12-25', "option_position": -100,
-             'K': 12, 'look_back_num': 10, 'r': 0.02}
-call2 = AmericanCall(**paras_dt2)
-call2.calculate_option_greeks()
-print(pd.concat([call2.basic_paras_df,call2.greek_df['delta']],axis=1))
-
-paras_dt2 = {'option_type': 'VanillaPut', 'underlying_asset': 'stock',
-             "underlying_code": "sim_0", "strike_date": "2020-01-16",
-             'maturity_date': '2020-12-25', "option_position": -100,
-             'K': 12, 'look_back_num': 10, 'r': 0.02}
-call2 = VanillaPut(**paras_dt2)
-call2.calculate_option_greeks()
-print(pd.concat([call2.basic_paras_df,call2.greek_df['delta']],axis=1))
-
-
-paras_dt2 = {'option_type': 'AmericanPut', 'underlying_asset': 'stock',
-             "underlying_code": "sim_0", "strike_date": "2020-01-16",
-             'maturity_date': '2020-12-25', "option_position": -100,
-             'K': 12, 'look_back_num': 10, 'r': 0.02}
-call2 = AmericanPut(**paras_dt2)
-call2.calculate_option_greeks()
-print(pd.concat([call2.basic_paras_df,call2.greek_df['delta']],axis=1))
-
-# op.add_option_list(paras_dt2)
+hedge_strategy = HedgeAllStrategy('stock', ['sim_0'])
+bt = Backtest()
+bt.set_strategy(hedge_strategy)
+bt.set_portfolio(op)
+for each in bt.run_backtest():
+    print(each)

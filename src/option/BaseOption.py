@@ -125,18 +125,18 @@ class BaseOption:
         sigma_T = sigma * sqrt(left_times) 对应用于之后BS公式计算
         """
         logger.info(f'{self.__class__.__name__} calculate basic paras')
-        self.basic_paras_df = pd.DataFrame(data=None, columns=self.basic_paras_columns)
-        self.basic_paras_df.loc[:, 'sigma'] = self.volatility.dropna()
-        self.basic_paras_df.loc[:, 'sigma_2'] = self.basic_paras_df.loc[:, 'sigma'] ** 2
-        self.basic_paras_df.loc[:, 'left_days'] = np.linspace(self.trade_dates_length - 1, 0, self.trade_dates_length)
-        self.basic_paras_df.loc[:, 'left_times'] = self.basic_paras_df.loc[:, 'left_days'] / 252
-        self.basic_paras_df.loc[:, 'sigma_T'] = self.basic_paras_df.loc[:, 'sigma'] * np.sqrt(
-            self.basic_paras_df.loc[:, 'left_times'])
-        self.basic_paras_df.loc[:, 'stock_price'] = self.spot_price.loc[self.trade_dates]
-        self.basic_paras_df.loc[:, 'Delta_S'] = self.basic_paras_df.loc[:, 'stock_price'].diff().fillna(0)
-        self.basic_paras_df.loc[:, 'Delta_r'] = self.basic_paras_df.loc[:, 'Delta_S'] / self.basic_paras_df.loc[:,
+        self.price_df = pd.DataFrame(data=None, columns=self.basic_paras_columns)
+        self.price_df.loc[:, 'sigma'] = self.volatility.dropna()
+        self.price_df.loc[:, 'sigma_2'] = self.price_df.loc[:, 'sigma'] ** 2
+        self.price_df.loc[:, 'left_days'] = np.linspace(self.trade_dates_length - 1, 0, self.trade_dates_length)
+        self.price_df.loc[:, 'left_times'] = self.price_df.loc[:, 'left_days'] / 252
+        self.price_df.loc[:, 'sigma_T'] = self.price_df.loc[:, 'sigma'] * np.sqrt(
+            self.price_df.loc[:, 'left_times'])
+        self.price_df.loc[:, 'stock_price'] = self.spot_price.loc[self.trade_dates]
+        self.price_df.loc[:, 'Delta_S'] = self.price_df.loc[:, 'stock_price'].diff().fillna(0)
+        self.price_df.loc[:, 'Delta_r'] = self.price_df.loc[:, 'Delta_S'] / self.price_df.loc[:,
                                                                                         'stock_price']
-        self.basic_paras_df.loc[:, 'exercise'] = 0
+        self.price_df.loc[:, 'exercise'] = 0
 
     @abstractmethod
     def calculate_option_price(self):
@@ -156,14 +156,14 @@ class BaseOption:
                                          columns=['option_pnl', 'delta_pnl', 'gamma_pnl', 'theta_pnl', 'disc_pnl',
                                                   'carry_pnl', 'residual'])
         self.decompose_df['option_pnl'] = greek_df.loc[:, 'option_value'].diff().fillna(0)
-        self.decompose_df['delta_pnl'] = greek_df.loc[:, 'delta'] * self.basic_paras_df.loc[:, 'Delta_S']
+        self.decompose_df['delta_pnl'] = greek_df.loc[:, 'delta'] * self.price_df.loc[:, 'Delta_S']
         self.decompose_df['gamma_pnl'] = greek_df.loc[:, 'gamma'] * np.power(
-            self.basic_paras_df.loc[:, 'Delta_S'], 2) / 2
-        self.decompose_df['theta_pnl'] = -greek_df.loc[:, 'gamma'] * np.power(self.basic_paras_df['stock_price'],
-                                                                              2) * self.basic_paras_df.loc[:,
+            self.price_df.loc[:, 'Delta_S'], 2) / 2
+        self.decompose_df['theta_pnl'] = -greek_df.loc[:, 'gamma'] * np.power(self.price_df['stock_price'],
+                                                                              2) * self.price_df.loc[:,
                                                                                    'sigma_2'] * 1 / 252 / 2
         self.decompose_df['disc_pnl'] = self.r * greek_df.loc[:, 'option_value'] / 252
-        self.decompose_df['carry_pnl'] = -greek_df.loc[:, 'delta'] * self.basic_paras_df[
+        self.decompose_df['carry_pnl'] = -greek_df.loc[:, 'delta'] * self.price_df[
             'stock_price'] * self.r * 1 / 252
         self.decompose_df['residual'] = self.decompose_df.loc[:, 'option_pnl'] - self.decompose_df.loc[:,
                                                                                  'delta_pnl'] - self.decompose_df.loc[:,

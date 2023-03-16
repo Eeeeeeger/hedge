@@ -35,44 +35,44 @@ class VanillaCall(BaseOption):
     def calculate_option_price(self):
         logger.info(f'{self.__class__.__name__} calculate option price')
         self.calculate_base_paras()
-        self.basic_paras_df.loc[:, 'd1'] = (np.log(
-            self.basic_paras_df.loc[:, 'stock_price'] / self.K) + self.r * self.basic_paras_df.loc[:,
-                                                                           'left_times']) / self.basic_paras_df.loc[:,
-                                                                                            'sigma_T'] + 0.5 * self.basic_paras_df.loc[
+        self.price_df.loc[:, 'd1'] = (np.log(
+            self.price_df.loc[:, 'stock_price'] / self.K) + self.r * self.price_df.loc[:,
+                                                                           'left_times']) / self.price_df.loc[:,
+                                                                                            'sigma_T'] + 0.5 * self.price_df.loc[
                                                                                                                :,
                                                                                                                'sigma_T']
-        self.basic_paras_df.loc[:, 'd2'] = self.basic_paras_df.loc[:, 'd1'] - self.basic_paras_df.loc[:, 'sigma_T']
-        self.basic_paras_df.loc[:, 'nd1'] = st.norm.pdf(self.basic_paras_df.loc[:, 'd1'])
-        self.basic_paras_df.loc[:, 'Nd1'] = st.norm.cdf(self.basic_paras_df.loc[:, 'd1'])
-        self.basic_paras_df.loc[:, 'Nd2'] = st.norm.cdf(self.basic_paras_df.loc[:, 'd2'])
-        self.basic_paras_df.loc[:, 'option_price'] = (self.basic_paras_df.loc[:, 'stock_price'] * self.basic_paras_df.loc[:, 'Nd1']
+        self.price_df.loc[:, 'd2'] = self.price_df.loc[:, 'd1'] - self.price_df.loc[:, 'sigma_T']
+        self.price_df.loc[:, 'nd1'] = st.norm.pdf(self.price_df.loc[:, 'd1'])
+        self.price_df.loc[:, 'Nd1'] = st.norm.cdf(self.price_df.loc[:, 'd1'])
+        self.price_df.loc[:, 'Nd2'] = st.norm.cdf(self.price_df.loc[:, 'd2'])
+        self.price_df.loc[:, 'option_price'] = (self.price_df.loc[:, 'stock_price'] * self.price_df.loc[:, 'Nd1']
                                                       - self.K * np.exp(
-                    -self.r * self.basic_paras_df.loc[:, 'left_times']) * self.basic_paras_df.loc[:, 'Nd2']
+                    -self.r * self.price_df.loc[:, 'left_times']) * self.price_df.loc[:, 'Nd2']
                                                       )
-        self.basic_paras_df.loc[self.basic_paras_df.index[-1], 'exercise'] = int(self.basic_paras_df['stock_price'][-1] > self.K)
+        self.price_df.loc[self.price_df.index[-1], 'exercise'] = int(self.price_df['stock_price'][-1] > self.K)
 
     def calculate_option_greeks(self):
         logger.info(f'{self.__class__.__name__} calculate option greeks')
         self.calculate_option_price()
         self.greek_df = pd.DataFrame(index=self.trade_dates, columns=self.greek_columns)
-        self.greek_df.loc[:, 'option_value'] = self.basic_paras_df.loc[:, 'option_price']
-        self.greek_df.loc[:, 'delta'] = self.basic_paras_df.loc[:, 'Nd1']  # 看涨期权的delta是Nd1
-        self.greek_df.loc[:, 'gamma'] = self.basic_paras_df.loc[:, 'nd1'] / (
-                self.basic_paras_df.loc[:, 'stock_price'] * self.basic_paras_df.loc[:, 'sigma_T'])
-        self.greek_df.loc[:, 'vega'] = self.greek_df.loc[:, 'gamma'] * self.basic_paras_df.loc[:,
-                                                                       'stock_price'] * self.basic_paras_df.loc[:,
-                                                                                        'stock_price'] * self.basic_paras_df.loc[
+        self.greek_df.loc[:, 'option_value'] = self.price_df.loc[:, 'option_price']
+        self.greek_df.loc[:, 'delta'] = self.price_df.loc[:, 'Nd1']  # 看涨期权的delta是Nd1
+        self.greek_df.loc[:, 'gamma'] = self.price_df.loc[:, 'nd1'] / (
+                self.price_df.loc[:, 'stock_price'] * self.price_df.loc[:, 'sigma_T'])
+        self.greek_df.loc[:, 'vega'] = self.greek_df.loc[:, 'gamma'] * self.price_df.loc[:,
+                                                                       'stock_price'] * self.price_df.loc[:,
+                                                                                        'stock_price'] * self.price_df.loc[
                                                                                                          :, 'sigma_T']
-        self.greek_df.loc[:, 'theta'] = -(self.basic_paras_df.loc[:, 'stock_price'] * self.basic_paras_df.loc[:,
-                                                                                      'nd1'] * self.basic_paras_df.loc[
+        self.greek_df.loc[:, 'theta'] = -(self.price_df.loc[:, 'stock_price'] * self.price_df.loc[:,
+                                                                                      'nd1'] * self.price_df.loc[
                                                                                                :, 'sigma'] / (
-                                                  2 * np.sqrt(self.basic_paras_df.loc[:, 'left_times']))) \
+                                                  2 * np.sqrt(self.price_df.loc[:, 'left_times']))) \
                                         - self.r * self.K * np.exp(
-            -self.r * self.basic_paras_df.loc[:, 'left_times']) * self.basic_paras_df.loc[:, 'Nd2']
+            -self.r * self.price_df.loc[:, 'left_times']) * self.price_df.loc[:, 'Nd2']
 
-    def get_basic_para_df(self):
+    def get_price_df(self):
         self.calculate_option_price()
-        return self.basic_paras_df
+        return self.price_df
 
     def get_greek_df(self):
         self.calculate_option_greeks()

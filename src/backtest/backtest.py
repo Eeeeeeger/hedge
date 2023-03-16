@@ -1,9 +1,6 @@
-import re
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 from src.option.Portfolio import OptionPortfolio as OP
 from src.strategy import *
+from loguru import logger
 # from ..backtest.reportTemplate import ReportTemplate
 # from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, ListItem, ListFlowable
 
@@ -20,13 +17,15 @@ class Backtest:
 
     def set_portfolio(self, portfolio: OP):
         self.op = portfolio
-        self.op.get_greek_df()
-        self.op.get_decomposition_df()
+        self.op.calculate_option_greeks()
 
     def run_backtest(self):
         for i, element in enumerate(self.op.option_list):
             self.df_backtest = self.op.greek_df[i].copy()
-            self.df_backtest.loc[:, 'stock_price'] = self.op.basic_paras_df[i].loc[:, 'stock_price']
+            self.df_backtest.loc[:, 'name'] = element["option_object"].__class__.__name__
+            self.df_backtest.loc[:, 'stock_price'] = self.op.price_df[i].loc[:, 'stock_price']
+            self.df_backtest.loc[:, 'exercise'] = self.op.price_df[i].loc[:, 'exercise']
+            self.df_backtest.loc[:, 'option_price'] = self.op.price_df[i].loc[:, 'option_price']
             # :TODO it should be hedge asset; considering multi assets
             self.df_backtest.loc[:, 'stock_position'] = self.strategy.cal_position(self.op.greek_df[i]).values
             self.df_backtest.loc[:, 'stock_value'] = self.df_backtest.loc[:, 'stock_price'] * self.df_backtest.loc[:,
@@ -44,30 +43,25 @@ class Backtest:
             self.df_backtest.loc[:, 'net_cash_account'] = self.df_backtest.loc[:, 'cash_account'] + self.df_backtest.loc[:, 'interest_value']
 
             self.df_backtest.loc[:, 'exercise_value'] = 0
-            # :TODO exercise
-            if 'Call' in element['option_object'].__class__.__name__:
-                if element['option_position']<0:
-                    if self.df_backtest['stock_price'][-1] > element['option_object'].K:
-                        self.df_backtest.loc[self.df_backtest.index[-1], 'exercise_value'] = element['option_object'].K * element['option_position']
-                elif element['option_position']>0:
-                    if self.df_backtest['stock_price'][-1] > element['option_object'].K:
-                        self.df_backtest.loc[self.df_backtest.index[-1], 'exercise_value'] = element['option_object'].K * element['option_position']
+            # exercise or not
+            if (self.df_backtest['exercise'] > 0).any():
+                exercise_date = self.df_backtest['exercise'].idxmax()
+                self.df_backtest = self.df_backtest.loc[self.df_backtest.index <= exercise_date]
+                logger.debug(f'{element["option_object"].__class__.__name__} exercise at {exercise_date}')
 
-            elif 'Put' in element['option_object'].__class__.__name__:
-                if element['option_position']<0:
-                    if self.df_backtest['stock_price'][-1] < element['option_object'].K:
-                        self.df_backtest.loc[self.df_backtest.index[-1], 'exercise_value'] = - element['option_object'].K * element['option_position']
-                elif element['option_position'] > 0:
-                    if self.df_backtest['stock_price'][-1] < element['option_object'].K:
-                        self.df_backtest.loc[self.df_backtest.index[-1], 'exercise_value'] = - element['option_object'].K * element['option_position']
+                if 'Call' in element["option_object"].__class__.__name__:
+                    self.df_backtest.loc[exercise_date, 'exercise_value'] = element['option_object'].K * element['option_position']
+                else:
+                    self.df_backtest.loc[exercise_date, 'exercise_value'] = - element['option_object'].K * element['option_position']
+            else:
+                logger.debug(f'{element["option_object"].__class__.__name__} not exercise')
             self.df_backtest.loc[:, 'final_pnl'] = self.df_backtest.loc[:, 'net_cash_account'] - self.df_backtest.loc[:, 'exercise_value']
 
             self.df_backtest = self.df_backtest.round(4)
             self.df_backtest.loc[:, 'trade_dummy'] = 1
             self.df_backtest.loc[self.df_backtest.loc[:, 'stock_position'].diff() == 0, 'trade_dummy'] = 0
             yield self.df_backtest
-        # self.hedge_pnl_analysis()
-        # self.generate_report()
+
 
     # def hedge_pnl_analysis(self):
     #     self.trade_dates = pd.to_datetime(self.df_backtest.index.values)
