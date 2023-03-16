@@ -11,10 +11,9 @@ from .EuropeanPut import EuropeanPut
 from src.data.Container import _container
 
 
-
 class OptionPortfolio():
     """
-    portfolio在get_option_list()里初始化期权合约级参数
+    portfolio在add_option_list()里初始化期权合约级参数
     关于日期的属性：
         all_trade_dates: 记录股价数据中所有的交易日
             - 类型: list
@@ -22,10 +21,8 @@ class OptionPortfolio():
             - 类型: list
         look_back_dates: trade_date加上算vol的一小段时间窗口的时间
             - 类型: list
-    返回greeks和日期的方法：
-        get_decomposition_df: 返回self.decompose_df，index是trade_dates，columns是pnl
-        get_trade_date: 返回self.trade_dates
     """
+
     def __init__(self):
         self.decompose_df = {}
         self.greek_df = {}
@@ -37,7 +34,7 @@ class OptionPortfolio():
     def add_option_list(self, para_dict):
         self.option_type = para_dict.get('option_type')
 
-        #初始化portfolio的合约级参数，这里以portfolio只有一种European为例
+        # 初始化portfolio的合约级参数，这里以portfolio只有一种European为例
         self.underlying_asset = para_dict.get('underlying_asset')
         self.underlying_code = para_dict.get('underlying_code')
         self.strike_date = para_dict.get('strike_date')
@@ -72,7 +69,6 @@ class OptionPortfolio():
         for i, element in enumerate(self.option_list):
             self.greek_df[i] = element.get('option_object').greek_df * element.get('option_position')
             self.price_df[i] = element.get('option_object').price_df
-
 
     def pnl_decompose(self):
         # TODO: American Greeks are not all finished

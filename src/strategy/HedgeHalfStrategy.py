@@ -10,7 +10,7 @@ import numpy as np
 class HedgeHalfStrategy(BaseStrategy):
 
     def cal_position(self, greek_df):
-        hedge_all_position = -greek_df['cash_delta'].values
+        hedge_all_position = -greek_df['delta'].values
         trade_days = len(self.spot_position)
         position = np.zeros(trade_days)
         position[0] = hedge_all_position[0]

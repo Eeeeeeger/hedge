@@ -6,6 +6,14 @@ from loguru import logger
 
 
 class Backtest:
+    '''
+    回测类
+    通过set_strategy设置对冲方法, set_portfolio添加期权组合
+    通过run_backtest对冲计算
+    对冲逻辑： 初始财富为零，通过借贷买入期权或者直接卖出得到期权费用，
+             随后根据对冲仓位借贷资金调整标的仓位，每期减去交易成本和资金成本得到现金流账户，
+             最后根据期权是否行权，对应买入或者卖出对应资产得到最终损益。
+    '''
     def __init__(self):
         self.fee_rate = 0.0005
         self.r = 0.02

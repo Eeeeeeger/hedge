@@ -9,7 +9,10 @@ from src.option.Portfolio import OptionPortfolio
 
 
 class BaseStrategy:
-
+    '''
+    对冲策略基类
+    通过重载calc_position函数继承各种不同对冲方法
+    '''
     def __init__(self, hedge_asset: str = None, hedge_code: list = None):
         # option underlying
         self.spot_position: pd.DataFrame = None
