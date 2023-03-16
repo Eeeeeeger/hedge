@@ -11,13 +11,6 @@ from abc import abstractmethod
 from src.data.Container import _container
 
 
-# from ..MarketData.test_data import test_data as market_data
-
-# single_stock_data = MarketData(['stock'])
-# data = pd.read_csv('./data/MarketData/single_stock_data.csv', index_col=0)
-# single_stock_data.add_data('stock', '300015.SZ', data)
-# 读取数据
-
 class BaseOption:
     """期权基类
 
@@ -64,6 +57,9 @@ class BaseOption:
         self.r = r
         self.greek_df: pd.DataFrame = None
         self.set_all_trade_dates()
+        logger.info(
+            f'Initialize {self.__class__.__name__} with underlying: {self.underlying_asset}-{self.underlying_code} '
+            f'start_date: {strike_date}, maturity_date: {maturity_date}, K: {self.K}')
 
     def set_all_trade_dates(self):
         self.all_trade_dates = _container.get_data(self.underlying_asset, self.underlying_code).index.tolist()
@@ -135,12 +131,12 @@ class BaseOption:
         self.price_df.loc[:, 'stock_price'] = self.spot_price.loc[self.trade_dates]
         self.price_df.loc[:, 'Delta_S'] = self.price_df.loc[:, 'stock_price'].diff().fillna(0)
         self.price_df.loc[:, 'Delta_r'] = self.price_df.loc[:, 'Delta_S'] / self.price_df.loc[:,
-                                                                                        'stock_price']
+                                                                            'stock_price']
         self.price_df.loc[:, 'exercise'] = 0
 
     @abstractmethod
     def calculate_option_price(self):
-        """计算price的参数，比如VanillaOption里面的d1，d2等等
+        """计算price的参数，比如EuropeanOption里面的d1，d2等等
         """
         pass
 
@@ -187,6 +183,8 @@ class BaseOption:
     @staticmethod
     def CRR(S0: float, r: float, K: float, sigma: float, T: float, type: str = 'Call'):
         N = int(250 * T)
+        if N < 0.0:
+            return float("nan")
         if N == 0.0:
             if type == 'Call':
                 return max(S0 - K, 0)

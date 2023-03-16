@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import pandas as pd
-import numpy as np
 from typing import Optional
-from scipy import stats as st
-from .BaseOption import BaseOption
-from src.data.Container import _container
+
+import pandas as pd
 from loguru import logger
+
+from .BaseOption import BaseOption
+
 
 class AmericanCall(BaseOption):
     """AmericanCall
@@ -37,34 +37,65 @@ class AmericanCall(BaseOption):
         self.greek_df = pd.DataFrame(index=self.trade_dates, columns=self.greek_columns)
         self.greek_df.loc[:, 'option_value'] = self.price_df.loc[:, 'option_price']
         self.greek_df.loc[:, 'delta'] = self.price_df.apply(lambda x: (self.CRR(x['stock_price'] + 0.05,
-                                                                                      self.r,
-                                                                                      self.K,
-                                                                                      x['sigma'],
-                                                                                      x['left_times'],
-                                                                                      'Call')
-                                                                             - self.CRR(x['stock_price'] - 0.05,
-                                                                                        self.r,
-                                                                                        self.K,
-                                                                                        x['sigma'],
-                                                                                        x['left_times'],
-                                                                                        'Call')
-                                                                             ) / 0.1,
+                                                                                self.r,
+                                                                                self.K,
+                                                                                x['sigma'],
+                                                                                x['left_times'],
+                                                                                'Call'
+                                                                                )
+                                                                       - self.CRR(x['stock_price'] - 0.05,
+                                                                                  self.r,
+                                                                                  self.K,
+                                                                                  x['sigma'],
+                                                                                  x['left_times'],
+                                                                                  'Call'
+                                                                                  )
+                                                                       ) / 0.1,
                                                             axis=1)
 
-        self.greek_df.loc[:, 'gamma'] = self.price_df.apply(lambda x: (self.CRR(x['stock_price'] + 0.05,
+        self.greek_df.loc[:, 'gamma'] = self.price_df.apply(lambda x: (self.CRR(x['stock_price'] + 0.1,
                                                                                 self.r,
                                                                                 self.K,
                                                                                 x['sigma'],
                                                                                 x['left_times'],
                                                                                 'Call')
-                                                                        - 2 * x['option_price']
-                                                                        + self.CRR(x['stock_price'] - 0.05,
-                                                                                   self.r,
-                                                                                   self.K,
-                                                                                   x['sigma'],
-                                                                                   x['left_times'],
-                                                                                   'Call')
-                                                                        ) / 0.05 / 0.05,
+                                                                       - 2 * x['option_price']
+                                                                       + self.CRR(x['stock_price'] - 0.1,
+                                                                                  self.r,
+                                                                                  self.K,
+                                                                                  x['sigma'],
+                                                                                  x['left_times'],
+                                                                                  'Call')
+                                                                       ) / 0.1 / 0.1,
+                                                            axis=1)
+
+        self.greek_df.loc[:, 'vega'] = self.price_df.apply(lambda x: (self.CRR(x['stock_price'],
+                                                                               self.r,
+                                                                               self.K,
+                                                                               x['sigma'] + 0.05,
+                                                                               x['left_times'],
+                                                                               'Call')
+                                                                      - self.CRR(x['stock_price'],
+                                                                                 self.r,
+                                                                                 self.K,
+                                                                                 x['sigma'] - 0.05,
+                                                                                 x['left_times'],
+                                                                                 'Call')
+                                                                      ) / 0.1,
+                                                           axis=1)
+        self.greek_df.loc[:, 'theta'] = self.price_df.apply(lambda x: (self.CRR(x['stock_price'],
+                                                                                self.r,
+                                                                                self.K,
+                                                                                x['sigma'],
+                                                                                x['left_times'] + 0.005,
+                                                                                'Call')
+                                                                       - self.CRR(x['stock_price'],
+                                                                                  self.r,
+                                                                                  self.K,
+                                                                                  x['sigma'],
+                                                                                  x['left_times'] - 0.005,
+                                                                                  'Call')
+                                                                       ) / 0.01,
                                                             axis=1)
 
     def get_price_df(self):

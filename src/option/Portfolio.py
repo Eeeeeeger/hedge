@@ -6,8 +6,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from .AmericanCall import AmericanCall
 from .AmericanPut import AmericanPut
-from .VanillaCall import VanillaCall
-from .VanillaPut import VanillaPut
+from .EuropeanCall import EuropeanCall
+from .EuropeanPut import EuropeanPut
 from src.data.Container import _container
 
 
@@ -37,7 +37,7 @@ class OptionPortfolio():
     def add_option_list(self, para_dict):
         self.option_type = para_dict.get('option_type')
 
-        #初始化portfolio的合约级参数，这里以portfolio只有一种Vanilla为例
+        #初始化portfolio的合约级参数，这里以portfolio只有一种European为例
         self.underlying_asset = para_dict.get('underlying_asset')
         self.underlying_code = para_dict.get('underlying_code')
         self.strike_date = para_dict.get('strike_date')
@@ -47,18 +47,18 @@ class OptionPortfolio():
         self.option_position = para_dict.get('option_position', 1)
         self.set_all_trade_dates()
 
-        if self.option_type in ['VanillaCall', 'VanillaPut', 'AmericanCall', 'AmericanPut']:
+        if self.option_type in ['EuropeanCall', 'EuropeanPut', 'AmericanCall', 'AmericanPut']:
             option = eval(self.option_type)(**para_dict)
             option.calculate_option_greeks()
             self.option_list.append({'option_object': option, 'option_position': self.option_position})
         # elif self.option_type == "BullCallSpread":
-        #     option1 = VanillaCall()
+        #     option1 = EuropeanCall()
         #     parameter = para_dict.copy()
         #     parameter['K'] = min(para_dict.get('K'))
         #     parameter['KS_ratio'] = min(para_dict.get('KS_ratio'))
         #     option1.set_paras_by_dict(parameter)
         #     self.option_list.append({'option_object': option1, 'option_position': 1})
-        #     option2 = VanillaCall()
+        #     option2 = EuropeanCall()
         #     parameter = para_dict.copy()
         #     parameter['K'] = max(para_dict.get('K'))
         #     parameter['KS_ratio'] = max(para_dict.get('KS_ratio'))
